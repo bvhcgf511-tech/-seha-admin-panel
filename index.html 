@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إدخال وطباعة الإجازات المرضية</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&family=Tajawal:wght@500;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Cairo', sans-serif; }
+        body { background-color: #f4f6f9; color: #333; padding: 20px; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
+        .container { width: 100%; max-width: 900px; }
+        .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        h2 { text-align: center; color: #1e629b; margin-bottom: 15px; font-weight: 800; }
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .form-group { margin-bottom: 12px; }
+        .form-group.full { grid-column: span 2; }
+        label { display: block; font-weight: 700; margin-bottom: 5px; color: #444; font-size: 13px; }
+        input { width: 100%; height: 40px; padding: 0 10px; border: 1px solid #ccc; border-radius: 8px; font-size: 13px; outline: none; }
+        input:focus { border-color: #1e629b; }
+        .btn { height: 42px; border: none; border-radius: 8px; font-weight: 700; font-size: 14px; cursor: pointer; transition: background 0.3s; padding: 0 20px; color: white; width: 100%; margin-top: 10px; }
+        .btn-primary { background: #1e629b; }
+        .btn-primary:hover { background: #164e7d; }
+        .btn-success { background: #28a745; }
+        .btn-success:hover { background: #218838; }
+
+        /* تنسيقات عرض التقرير الطبي PDF (210mm × 297mm) */
+        #report-section { display: none; width: 210mm; margin: 0 auto; }
+        .page {
+            width: 210mm;
+            min-width: 210mm;
+            max-width: 210mm;
+            height: 297mm;
+            min-height: 297mm;
+            max-height: 297mm;
+            margin: 0 auto;
+            padding: 8mm 9mm;
+            background: #fff;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 0 10px rgba(0,0,0,0.2);
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+        .top { height: 32mm; display: grid; grid-template-columns: 1fr 1.3fr 1fr; align-items: center; direction: ltr; margin-bottom: 2mm; }
+        .logo-box-seha { width: 50mm; height: 50mm; margin-top: -16mm; margin-left: -6mm; display: flex; align-items: center; justify-content: flex-start; background: #ffffff; }
+        .logo-box-seha img, .saudi-logo-img, .logo-box-retina img, .ministry-box img, .center-logo-box img { max-width: 100%; max-height: 100%; object-fit: contain; mix-blend-mode: multiply; filter: contrast(1.1); }
+        .top-center { text-align: center; direction: ltr; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 30mm; }
+        .saudi-logo-img { width: 60mm; height: 60mm; margin-top: -4mm; }
+        .top-right { display: flex; justify-content: flex-end; }
+        .logo-box-retina { width: 60mm; height: 50mm; margin-top: -13mm; margin-left: -6mm; display: flex; align-items: center; justify-content: flex-end; background: #ffffff; }
+        .heading { text-align: center; margin-top: 1mm; height: 18mm; color: #3274bd; }
+        .heading h1 { font-family: "Tajawal", sans-serif; font-size: 23px; margin: 0; font-weight: 800; }
+        .heading h2 { font-family: "Georgia", serif; font-size: 17px; margin: 3px 0 0; color: #293e79; font-weight: bold; }
+        .table-container { width: 100%; margin-top: 1mm; }
+        .report-table { width: 100%; border-collapse: separate; border-spacing: 0; table-layout: fixed; direction: ltr; border: 1px solid #dedede; border-radius: 5px; overflow: hidden; }
+        .report-table td { border: 0.5px solid #d7d7d7; height: 10mm; padding: 3px 5px; text-align: center; vertical-align: middle; font-size: 11px; color: #293e79; background: #fff; white-space: nowrap; font-family: "Cairo", sans-serif; }
+        .report-table td.en-label { font-weight: bold; color: #3175c4; }
+        .report-table td.ar-label { direction: rtl; font-weight: bold; color: #3175c4; }
+        .report-table td.en-value { direction: ltr; }
+        .report-table td.ar-value { direction: rtl; }
+        .report-table tr:nth-child(even) td { background: #f5f5f5; }
+        .duration td { background: #30457e !important; color: white !important; font-weight: bold; }
+        .duration .ar-label, .duration .en-label { color: white !important; }
+        .footer { display: grid; grid-template-columns: 1fr 1fr; direction: ltr; height: 51mm; margin-top: 4mm; }
+        .footer-left { display: flex; flex-direction: column; justify-content: flex-end; align-items: center; text-align: center; padding: 0 5mm 0; color: #000; font-size: 11px; line-height: 1.8; font-weight: bold; }
+        .footer-left .english-note { font-size: 10px; }
+        .footer-left a { color: blue; text-decoration: underline; }
+        .footer-right { border-left: 1px solid #ddd; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; text-align: center; padding-top: 3mm; }
+        .ministry-box { width: 60mm; height: 40mm; display: flex; align-items: center; justify-content: center; margin-bottom: 2mm; }
+        .hospital-ar { font-size: 12px; font-weight: bold; direction: rtl; }
+        .hospital-en { font-size: 11px; font-weight: bold; direction: ltr; margin-top: 3px; }
+        .bottom-info { position: absolute; left: 9mm; right: 9mm; bottom: 46mm; height: 17mm; direction: ltr; display: flex; justify-content: space-between; align-items: center; }
+        .date-info { color: #111; font-size: 11px; font-weight: bold; line-height: 2.5; direction: ltr; }
+        .center-logo-box { width: 38mm; height: 20mm; display: flex; align-items: center; justify-content: center; }
+
+        @page {
+            size: 210mm 297mm portrait;
+            margin: 0;
+        }
+
+        @media print {
+            * {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+                color-adjust: exact !important;
+            }
+            html, body {
+                background: #fff !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                width: 210mm !important;
+                height: 297mm !important;
+                min-height: 0 !important;
+                display: block !important;
+                overflow: hidden !important;
+            }
+            .container {
+                width: 210mm !important;
+                max-width: 210mm !important;
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+            .container > *:not(#report-section) {
+                display: none !important;
+            }
+            #report-section {
+                display: block !important;
+                width: 210mm !important;
+                height: 297mm !important;
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+            .no-print {
+                display: none !important;
+            }
+            .page {
+                box-shadow: none !important;
+                margin: 0 !important;
+                width: 210mm !important;
+                min-width: 210mm !important;
+                max-width: 210mm !important;
+                height: 297mm !important;
+                min-height: 297mm !important;
+                max-height: 297mm !important;
+                padding: 8mm 9mm !important;
+                page-break-before: avoid;
+                page-break-after: avoid;
+                page-break-inside: avoid;
+                break-inside: avoid;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- 1. واجهة الإدخال -->
+    <div class="card" id="control-panel">
+        <h2>إدخال بيانات الإجازة المرضية</h2>
+
+        <form id="patient-form" onsubmit="generateReport(event)">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>رمز الإجازة (Leave ID):</label>
+                    <input type="text" id="p-code" placeholder="أدخل رمز الإجازة" required>
+                </div>
+                <div class="form-group">
+                    <label>رقم الهوية / الإقامة:</label>
+                    <input type="text" id="p-id" placeholder="أدخل رقم الهوية أو الإقامة" required>
+                </div>
+                <div class="form-group">
+                    <label>اسم المريض (عربي):</label>
+                    <input type="text" id="p-name-ar" placeholder="أدخل اسم المريض بالعربية" required>
+                </div>
+                <div class="form-group">
+                    <label>اسم المريض (إنجليزي - Name):</label>
+                    <input type="text" id="p-name-en" placeholder="Enter patient name in English" required>
+                </div>
+                <div class="form-group">
+                    <label>اسم المستشفى (عربي):</label>
+                    <input type="text" id="p-hospital-ar" placeholder="أدخل اسم المستشفى بالعربية" required>
+                </div>
+                <div class="form-group">
+                    <label>اسم المستشفى (إنجليزي - Hospital):</label>
+                    <input type="text" id="p-hospital-en" placeholder="Enter hospital name in English" required>
+                </div>
+                <div class="form-group">
+                    <label>الجنسية (عربي):</label>
+                    <input type="text" id="p-country-ar" placeholder="أدخل الجنسية بالعربية" required>
+                </div>
+                <div class="form-group">
+                    <label>الجنسية (إنجليزي - Nationality):</label>
+                    <input type="text" id="p-country-en" placeholder="Enter nationality in English" required>
+                </div>
+                <div class="form-group">
+                    <label>جهة العمل (عربي):</label>
+                    <input type="text" id="p-emp-ar" placeholder="أدخل جهة العمل بالعربية" required>
+                </div>
+                <div class="form-group">
+                    <label>جهة العمل (إنجليزي - Employer):</label>
+                    <input type="text" id="p-emp-en" placeholder="Enter employer in English" required>
+                </div>
+                <div class="form-group">
+                    <label>مدة الإجازة بالأيام:</label>
+                    <input type="text" id="p-days" placeholder="أدخل عدد الأيام" required>
+                </div>
+                <div class="form-group">
+                    <label>تاريخ الإصدار:</label>
+                    <input type="date" id="p-issue-date" required>
+                </div>
+                <div class="form-group">
+                    <label>تاريخ بداية الإجازة (الدخول):</label>
+                    <input type="date" id="p-start-date" required>
+                </div>
+                <div class="form-group">
+                    <label>تاريخ نهاية الإجازة (الخروج):</label>
+                    <input type="date" id="p-end-date" required>
+                </div>
+                <div class="form-group">
+                    <label>اسم الطبيب (عربي):</label>
+                    <input type="text" id="p-doc-ar" placeholder="أدخل اسم الطبيب بالعربية" required>
+                </div>
+                <div class="form-group">
+                    <label>اسم الطبيب (إنجليزي - Practitioner):</label>
+                    <input type="text" id="p-doc-en" placeholder="Enter practitioner name in English" required>
+                </div>
+                <div class="form-group">
+                    <label>المسمى الوظيفي (عربي):</label>
+                    <input type="text" id="p-job-ar" placeholder="أدخل المسمى الوظيفي بالعربية" required>
+                </div>
+                <div class="form-group">
+                    <label>المسمى الوظيفي (إنجليزي - Position):</label>
+                    <input type="text" id="p-job-en" placeholder="Enter position in English" required>
+                </div>
+                <div class="form-group full">
+                    <label>رابط التحقق للموقع (URL):</label>
+                    <input type="url" id="p-file-url" placeholder="https://example.com" required>
+                </div>
+            </div>
+
+            <button type="submit" id="submit-btn" class="btn btn-success">تعبئة وعرض التقرير</button>
+        </form>
+    </div>
+
+    <!-- 2. قسم عرض التقرير الطبي PDF -->
+    <div id="report-section">
+        <div class="no-print" style="margin-bottom: 15px; text-align: center;">
+            <button class="btn btn-primary" style="width: auto; display: inline-block; padding: 10px 25px;" onclick="window.print()">🖨️ طباعة التقرير / حفظ PDF</button>
+            <button class="btn" style="width: auto; display: inline-block; background: #6c757d; padding: 10px 25px; margin-right: 10px;" onclick="backToForm()">🔙 تعديل البيانات</button>
+        </div>
+
+        <div class="page">
+            <div class="top">
+                <div class="logo-box-seha"><img src="https://i.ibb.co/R4k3vYLw/Seha.png" alt="شعار صحة"></div>
+                <div class="top-center"><img src="https://i.ibb.co/5gDLwXnr/Screenshot-3.jpg" alt="شعار المملكة" class="saudi-logo-img"></div>
+                <div class="top-right"><div class="logo-box-retina"><img src="https://i.ibb.co/DPXK425y/Screenshot-3.jpg" alt="شعار الشبكية"></div></div>
+            </div>
+
+            <div class="heading">
+                <h1>تقرير إجازة مرضية</h1>
+                <h2>Sick Leave Report</h2>
+            </div>
+
+            <div class="table-container">
+                <table class="report-table">
+                    <colgroup>
+                        <col style="width: 21%;">
+                        <col style="width: 31%;">
+                        <col style="width: 31%;">
+                        <col style="width: 17%;">
+                    </colgroup>
+                    <tbody>
+                        <tr>
+                            <td class="en-label">Leave ID</td>
+                            <td class="en-value" colspan="2" id="val-id"></td>
+                            <td class="ar-label">رمز الإجازة</td>
+                        </tr>
+                        <tr class="duration">
+                            <td class="en-label">Leave Duration</td>
+                            <td class="en-value" id="val-dur-en"></td>
+                            <td class="ar-value" id="val-dur-ar"></td>
+                            <td class="ar-label">مدة الإجازة</td>
+                        </tr>
+                        <tr>
+                            <td class="en-label">Admission Date</td>
+                            <td class="en-value" id="val-adm"></td>
+                            <td class="ar-value" id="val-adm-ar"></td>
+                            <td class="ar-label">تاريخ الدخول</td>
+                        </tr>
+                        <tr>
+                            <td class="en-label">Discharge Date</td>
+                            <td class="en-value" id="val-dis"></td>
+                            <td class="ar-value" id="val-dis-ar"></td>
+                            <td class="ar-label">تاريخ الخروج</td>
+                        </tr>
+                        <tr>
+                            <td class="en-label">Issue Date</td>
+                            <td colspan="2" id="val-issue"></td>
+                            <td class="ar-label">تاريخ إصدار التقرير</td>
+                        </tr>
+                        <tr>
+                            <td class="en-label">Name</td>
+                            <td class="en-value" id="val-name-en"></td>
+                            <td class="ar-value" id="val-name-ar"></td>
+                            <td class="ar-label">الاسم</td>
+                        </tr>
+                        <tr>
+                            <td class="en-label">National ID / Iqama</td>
+                            <td colspan="2" id="val-natid"></td>
+                            <td class="ar-label">رقم الهوية / الإقامة</td>
+                        </tr>
+                        <tr>
+                            <td class="en-label">Nationality</td>
+                            <td class="en-value" id="val-country-en"></td>
+                            <td class="ar-value" id="val-country-ar"></td>
+                            <td class="ar-label">الجنسية</td>
+                        </tr>
+                        <tr>
+                            <td class="en-label">Employer</td>
+                            <td class="en-value" id="val-emp-en"></td>
+                            <td class="ar-value" id="val-emp-ar"></td>
+                            <td class="ar-label">جهة العمل</td>
+                        </tr>
+                        <tr>
+                            <td class="en-label">Practitioner Name</td>
+                            <td class="en-value" id="val-doc-en"></td>
+                            <td class="ar-value" id="val-doc-ar"></td>
+                            <td class="ar-label">اسم الممارس</td>
+                        </tr>
+                        <tr>
+                            <td class="en-label">Position</td>
+                            <td class="en-value" id="val-pos-en"></td>
+                            <td class="ar-value" id="val-pos-ar"></td>
+                            <td class="ar-label">المسمى الوظيفي</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="footer">
+                <div class="footer-left">
+                    <div>للتحقق من بيانات التقرير يرجى التأكد من زيارة موقع منصة صحة الرسمي</div>
+                    <div class="english-note">To check the report please visit Seha's official website</div>
+                    <a href="#" id="verify-link" target="_blank"></a>
+                </div>
+                <div class="footer-right">
+                    <div class="ministry-box"><img src="https://i.ibb.co/zHCPKZxt/Screenshot.png" alt="شعار وزارة الصحة"></div>
+                    <div class="hospital-ar" id="hosp-ar"></div>
+                    <div class="hospital-en" id="hosp-en"></div>
+                </div>
+            </div>
+
+            <div class="bottom-info">
+                <div class="date-info">
+                    <div id="reportTime"></div>
+                    <div id="reportDate"></div>
+                </div>
+                <div class="center-logo-box"><img src="https://i.ibb.co/Mx66wwM8/dfh-Zfy-JM-400x400-2.jpg" alt="شعار المركز الوطني"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function generateReport(event) {
+        event.preventDefault();
+
+        const patientData = {
+            code: document.getElementById('p-code').value.trim(),
+            id: document.getElementById('p-id').value.trim(),
+            name: document.getElementById('p-name-ar').value.trim(),
+            nameEn: document.getElementById('p-name-en').value.trim(),
+            hospital: document.getElementById('p-hospital-ar').value.trim(),
+            hospitalEn: document.getElementById('p-hospital-en').value.trim(),
+            nationality: document.getElementById('p-country-ar').value.trim(),
+            nationalityEn: document.getElementById('p-country-en').value.trim(),
+            employer: document.getElementById('p-emp-ar').value.trim(),
+            employerEn: document.getElementById('p-emp-en').value.trim(),
+            issueDate: document.getElementById('p-issue-date').value,
+            startDate: document.getElementById('p-start-date').value,
+            endDate: document.getElementById('p-end-date').value,
+            days: document.getElementById('p-days').value.trim(),
+            doctor: document.getElementById('p-doc-ar').value.trim(),
+            doctorEn: document.getElementById('p-doc-en').value.trim(),
+            job: document.getElementById('p-job-ar').value.trim(),
+            jobEn: document.getElementById('p-job-en').value.trim(),
+            fileUrl: document.getElementById('p-file-url').value.trim()
+        };
+
+        document.getElementById("val-id").textContent = patientData.code;
+        document.getElementById("val-dur-ar").textContent = `${patientData.days} يوم (${patientData.startDate} إلى ${patientData.endDate})`;
+        document.getElementById("val-dur-en").textContent = `${patientData.days} day (${patientData.startDate} to ${patientData.endDate})`;
+        document.getElementById("val-adm").textContent = patientData.startDate;
+        document.getElementById("val-adm-ar").textContent = patientData.startDate;
+        document.getElementById("val-dis").textContent = patientData.endDate;
+        document.getElementById("val-dis-ar").textContent = patientData.endDate;
+        document.getElementById("val-issue").textContent = patientData.issueDate;
+
+        document.getElementById("val-name-ar").textContent = patientData.name;
+        document.getElementById("val-name-en").textContent = patientData.nameEn;
+        document.getElementById("val-natid").textContent = patientData.id;
+
+        document.getElementById("val-country-ar").textContent = patientData.nationality;
+        document.getElementById("val-country-en").textContent = patientData.nationalityEn;
+
+        document.getElementById("val-emp-ar").textContent = patientData.employer;
+        document.getElementById("val-emp-en").textContent = patientData.employerEn;
+
+        document.getElementById("hosp-ar").textContent = patientData.hospital;
+        document.getElementById("hosp-en").textContent = patientData.hospitalEn;
+
+        document.getElementById("val-doc-ar").textContent = patientData.doctor;
+        document.getElementById("val-doc-en").textContent = patientData.doctorEn;
+
+        document.getElementById("val-pos-ar").textContent = patientData.job;
+        document.getElementById("val-pos-en").textContent = patientData.jobEn;
+
+        const linkEl = document.getElementById("verify-link");
+        linkEl.href = patientData.fileUrl;
+        linkEl.textContent = patientData.fileUrl;
+
+        updateDateTime();
+
+        document.getElementById('control-panel').style.display = 'none';
+        document.getElementById('report-section').style.display = 'block';
+    }
+
+    function backToForm() {
+        document.getElementById('report-section').style.display = 'none';
+        document.getElementById('control-panel').style.display = 'block';
+    }
+
+    function updateDateTime() {
+        const now = new Date();
+        document.getElementById("reportTime").textContent = now.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
+        document.getElementById("reportDate").textContent = now.toLocaleDateString("en-US", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+    }
+</script>
+
+</body>
+</html>
