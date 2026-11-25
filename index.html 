@@ -134,7 +134,7 @@
 <body>
 
 <div class="container">
-    <!-- 1. واجهة الإدخال -->
+    <!-- 1. واجهة الإدخال (تظهر أولاً) -->
     <div class="card" id="control-panel">
         <h2>إدخال بيانات الإجازة المرضية</h2>
 
@@ -218,11 +218,11 @@
                 </div>
             </div>
 
-            <button type="submit" id="submit-btn" class="btn btn-success">تعبئة وعرض التقرير</button>
+            <button type="submit" class="btn btn-success">تعبئة وعرض التقرير</button>
         </form>
     </div>
 
-    <!-- 2. قسم عرض التقرير الطبي PDF -->
+    <!-- 2. قسم عرض التقرير الطبي PDF (يظهر بعد التعبئة) -->
     <div id="report-section">
         <div class="no-print" style="margin-bottom: 15px; text-align: center;">
             <button class="btn btn-primary" style="width: auto; display: inline-block; padding: 10px 25px;" onclick="window.print()">🖨️ طباعة التقرير / حفظ PDF</button>
@@ -419,3 +419,4 @@
 
 </body>
 </html>
+هاذا هو الكود اربطهم
